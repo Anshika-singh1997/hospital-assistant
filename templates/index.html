@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Hospital Voice Assistant</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #1B5E20;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .card {
+      background: white;
+      border-radius: 20px;
+      padding: 40px 30px;
+      width: 90%;
+      max-width: 420px;
+      text-align: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+    .hospital-icon { font-size: 50px; margin-bottom: 10px; }
+    h1 { color: #1B5E20; font-size: 22px; margin-bottom: 5px; }
+    p.subtitle { color: #666; font-size: 13px; margin-bottom: 25px; }
+    #status {
+      background: #E8F5E9;
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 20px;
+      color: #1B5E20;
+      font-size: 14px;
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #mic-btn {
+      background: #1B5E20;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 90px;
+      height: 90px;
+      font-size: 36px;
+      cursor: pointer;
+      margin-bottom: 15px;
+      transition: all 0.3s;
+      box-shadow: 0 4px 15px rgba(27,94,32,0.4);
+    }
+    #mic-btn:hover { background: #2E7D32; transform: scale(1.05); }
+    #mic-btn.listening { background: #C62828; animation: pulse 1s infinite; }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(198,40,40,0.4); }
+      70% { box-shadow: 0 0 0 15px rgba(198,40,40,0); }
+      100% { box-shadow: 0 0 0 0 rgba(198,40,40,0); }
+    }
+    #reply-box {
+      background: #F5F5F5;
+      border-radius: 12px;
+      padding: 15px;
+      margin-top: 15px;
+      color: #333;
+      font-size: 14px;
+      min-height: 60px;
+      text-align: left;
+      display: none;
+    }
+    .reply-label { font-weight: bold; color: #1B5E20; margin-bottom: 5px; font-size: 12px; }
+    .lang-bar {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+    .lang-btn {
+      background: #E8F5E9;
+      color: #1B5E20;
+      border: 1px solid #A5D6A7;
+      border-radius: 20px;
+      padding: 5px 14px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .lang-btn.active { background: #1B5E20; color: white; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="hospital-icon">🏥</div>
+  <h1>Hospital Voice Assistant</h1>
+  <p class="subtitle">Tap the mic and ask your question</p>
+
+  <div id="status">Press the mic button and speak</div>
+
+  <button id="mic-btn" onclick="startListening()">🎤</button>
+  <br>
+  <small style="color:#999">Tap to speak — Tap again to stop</small>
+
+  <div id="reply-box">
+    <div class="reply-label">🔊 Assistant Reply:</div>
+    <div id="reply-text"></div>
+  </div>
+<div style="margin-top: 20px;">
+  <p style="color: #999; font-size: 12px; margin-bottom: 8px;">Don't have a smartphone?</p>
+  <a href="/ussd-test" target="_blank" style="
+    display: inline-block;
+    background: #E8F5E9;
+    color: #1B5E20;
+    border: 2px solid #A5D6A7;
+    border-radius: 20px;
+    padding: 8px 20px;
+    font-size: 13px;
+    font-weight: bold;
+    text-decoration: none;
+  ">📞 Use Basic Phone Guide (*555#)</a>
+</div>
+  <div class="lang-bar">
+    <button class="lang-btn active" onclick="setLang('en-IN', this)">English</button>
+    <button class="lang-btn" onclick="setLang('kn-IN', this)">ಕನ್ನಡ</button>
+    <button class="lang-btn" onclick="setLang('te-IN', this)">తెలుగు</button>
+    <button class="lang-btn" onclick="setLang('hi-IN', this)">हिंदी</button>
+  </div>
+</div>
+
+<script>
+  let recognition;
+  let isListening = false;
+  let selectedLang = 'en-IN';
+
+  function setLang(lang, btn) {
+    selectedLang = lang;
+    document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  function startListening() {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      document.getElementById('status').innerText = 'Sorry, your browser does not support voice. Please use Chrome.';
+      return;
+    }
+    if (isListening) {
+      recognition.stop();
+      return;
+    }
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    recognition.lang = selectedLang;
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => {
+      isListening = true;
+      document.getElementById('mic-btn').classList.add('listening');
+      document.getElementById('status').innerText = '🎤 Listening... speak now';
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      document.getElementById('status').innerText = 'You said: ' + transcript;
+      sendToFlask(transcript);
+    };
+
+    recognition.onerror = () => {
+      document.getElementById('status').innerText = 'Could not hear you. Please try again.';
+      isListening = false;
+      document.getElementById('mic-btn').classList.remove('listening');
+    };
+
+    recognition.onend = () => {
+      isListening = false;
+      document.getElementById('mic-btn').classList.remove('listening');
+    };
+
+    recognition.start();
+  }
+
+  function sendToFlask(message) {
+    fetch('/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({ message: message, lang: selectedLang === 'kn-IN' ? 'kannada' : selectedLang === 'te-IN' ? 'telugu' : selectedLang === 'hi-IN' ? 'hindi' : 'english' })    })
+    .then(res => res.json())
+    .then(data => {
+      const reply = data.reply;
+      document.getElementById('reply-text').innerText = reply;
+      document.getElementById('reply-box').style.display = 'block';
+      speakReply(reply);
+    });
+  }
+
+  function speakReply(text) {
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = selectedLang;
+    utterance.rate = 0.9;
+    window.speechSynthesis.speak(utterance);
+  }
+</script>
+</body>
+</html>
