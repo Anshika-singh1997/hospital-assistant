@@ -254,8 +254,7 @@
       speakReply(reply);
     });
   }
-
-  function speakReply(text) {
+function speakReply(text) {
   fetch('/speak', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -269,23 +268,6 @@
   });
 }
  
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = selectedLang;
-    utterance.rate = 0.85;
-    utterance.pitch = 1.1;
-    utterance.volume = 1;
-
-    // Load voices and pick best one
-    const voice = getBestVoice(selectedLang);
-    if (voice) utterance.voice = voice;
-
-    // Prevent repeating — only speak once
-    utterance.onend = () => {
-      console.log('Speech finished');
-    };
-
-    window.speechSynthesis.speak(utterance);
-  }
 
   function listenAgain() {
     if (lastReply) {
