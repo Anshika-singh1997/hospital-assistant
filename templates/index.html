@@ -256,9 +256,19 @@
   }
 
   function speakReply(text) {
-    // Cancel any ongoing speech first
-    window.speechSynthesis.cancel();
-
+  fetch('/speak', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: text })
+  })
+  .then(res => res.blob())
+  .then(blob => {
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    audio.play();
+  });
+}
+ 
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = selectedLang;
     utterance.rate = 0.85;
