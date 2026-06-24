@@ -5,7 +5,7 @@ import requests as req
 app = Flask(__name__)
 
 ELEVENLABS_API_KEY = "paste_your_key_here"
-VOICE_ID = "21m00Tcm4TlvDq8ikWAM"  # change this after picking voice
+VOICE_ID = "c3QefzBhE1Cx4Yl23IV3"  # change this after picking voice
 
 @app.route("/")
 def home():
