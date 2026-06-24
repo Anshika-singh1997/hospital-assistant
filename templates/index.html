@@ -159,34 +159,6 @@
     btn.classList.add('active');
   }
 
-  function getBestVoice(lang) {
-    const voices = window.speechSynthesis.getVoices();
-    const langCode = lang.split('-')[0];
-
-    // Try to find a female voice first
-    let voice = voices.find(v =>
-      v.lang.startsWith(lang) &&
-      (v.name.toLowerCase().includes('female') ||
-       v.name.toLowerCase().includes('woman') ||
-       v.name.toLowerCase().includes('zira') ||
-       v.name.toLowerCase().includes('heera') ||
-       v.name.toLowerCase().includes('ravi') ||
-       v.name.toLowerCase().includes('google'))
-    );
-
-    // Fallback to any voice matching language
-    if (!voice) {
-      voice = voices.find(v => v.lang.startsWith(lang));
-    }
-
-    // Fallback to English
-    if (!voice) {
-      voice = voices.find(v => v.lang.startsWith('en'));
-    }
-
-    return voice;
-  }
-
   function startListening() {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
       document.getElementById('status').innerText = 'Sorry, your browser does not support voice. Please use Chrome.';
@@ -198,8 +170,6 @@
       return;
     }
 
-    // Stop any ongoing speech first
-    window.speechSynthesis.cancel();
     document.getElementById('listen-again-btn').style.display = 'none';
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -220,8 +190,8 @@
       sendToFlask(transcript);
     };
 
-    recognition.onerror = () => {
-      document.getElementById('status').innerText = 'Could not hear you. Please try again.';
+    recognition.onerror = (e) => {
+      document.getElementById('status').innerText = 'Error: ' + e.error + '. Please try again.';
       isListening = false;
       document.getElementById('mic-btn').classList.remove('listening');
     };
@@ -254,31 +224,29 @@
       speakReply(reply);
     });
   }
-function speakReply(text) {
-  fetch('/speak', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: text })
-  })
-  .then(res => res.blob())
-  .then(blob => {
-    const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
-    audio.play();
-  });
-}
- 
+
+  function speakReply(text) {
+    fetch('/speak', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: text })
+    })
+    .then(res => res.blob())
+    .then(blob => {
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.play();
+    })
+    .catch(err => {
+      console.error('ElevenLabs error:', err);
+    });
+  }
 
   function listenAgain() {
     if (lastReply) {
       speakReply(lastReply);
     }
   }
-
-  // Load voices when page loads
-  window.speechSynthesis.onvoiceschanged = () => {
-    console.log('Voices loaded:', window.speechSynthesis.getVoices().length);
-  };
 </script>
 </body>
 </html>
