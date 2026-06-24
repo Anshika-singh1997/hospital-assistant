@@ -1,11 +1,9 @@
 from flask import Flask, render_template, request, jsonify, Response
 from responses import get_response
-import requests as req
+from gtts import gTTS
+import io
 
 app = Flask(__name__)
-
-ELEVENLABS_API_KEY = "sk_bd04885fae345221314d442e818315257fd971c49246af56"
-VOICE_ID = "c3QefzBhE1Cx4Yl23IV3"
 
 @app.route("/")
 def home():
@@ -23,24 +21,12 @@ def ask():
 def speak():
     data = request.get_json()
     text = data.get("text", "")
-    url = f"https://api.elevenlabs.io/v1/text-to-speech/{VOICE_ID}"
-    headers = {
-        "xi-api-key": ELEVENLABS_API_KEY,
-        "Content-Type": "application/json"
-    }
-    body = {
-        "text": text,
-        "model_id": "eleven_turbo_v2",
-        "voice_settings": {"stability": 0.5, "similarity_boost": 0.75}
-    }
-    response = req.post(url, headers=headers, json=body)
-    print("ElevenLabs status:", response.status_code)
-    print("ElevenLabs response:", response.text[:200])
-    return Response(response.content, mimetype="audio/mpeg", headers={
-    "Content-Type": "audio/mpeg",
-    "Accept-Ranges": "bytes",
-    "Access-Control-Allow-Origin": "*"
-})
+    lang = data.get("lang", "en")
+    tts = gTTS(text=text, lang=lang, slow=False)
+    mp3_fp = io.BytesIO()
+    tts.write_to_fp(mp3_fp)
+    mp3_fp.seek(0)
+    return Response(mp3_fp.read(), mimetype="audio/mpeg")
 
 @app.route("/ussd", methods=["POST", "GET"])
 def ussd():
