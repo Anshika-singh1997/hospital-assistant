@@ -34,7 +34,9 @@ def speak():
         "voice_settings": {"stability": 0.5, "similarity_boost": 0.75}
     }
     response = req.post(url, headers=headers, json=body)
-    return Response(response.content, mimetype="audio/mpeg")
+print("ElevenLabs status:", response.status_code)
+print("ElevenLabs response:", response.text[:200])
+return Response(response.content, mimetype="audio/mpeg")
 
 @app.route("/ussd", methods=["POST", "GET"])
 def ussd():
