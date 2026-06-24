@@ -70,6 +70,20 @@
       display: none;
     }
     .reply-label { font-weight: bold; color: #1B5E20; margin-bottom: 5px; font-size: 12px; }
+    #listen-again-btn {
+      display: none;
+      margin-top: 12px;
+      background: #E8F5E9;
+      color: #1B5E20;
+      border: 2px solid #A5D6A7;
+      border-radius: 20px;
+      padding: 8px 20px;
+      font-size: 13px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    #listen-again-btn:hover { background: #1B5E20; color: white; }
     .lang-bar {
       display: flex;
       justify-content: center;
@@ -87,6 +101,18 @@
       cursor: pointer;
     }
     .lang-btn.active { background: #1B5E20; color: white; }
+    .no-phone-btn {
+      display: inline-block;
+      margin-top: 15px;
+      background: #E8F5E9;
+      color: #1B5E20;
+      border: 2px solid #A5D6A7;
+      border-radius: 20px;
+      padding: 8px 20px;
+      font-size: 13px;
+      font-weight: bold;
+      text-decoration: none;
+    }
   </style>
 </head>
 <body>
@@ -105,20 +131,14 @@
     <div class="reply-label">🔊 Assistant Reply:</div>
     <div id="reply-text"></div>
   </div>
-<div style="margin-top: 20px;">
-  <p style="color: #999; font-size: 12px; margin-bottom: 8px;">Don't have a smartphone?</p>
-  <a href="/ussd-test" target="_blank" style="
-    display: inline-block;
-    background: #E8F5E9;
-    color: #1B5E20;
-    border: 2px solid #A5D6A7;
-    border-radius: 20px;
-    padding: 8px 20px;
-    font-size: 13px;
-    font-weight: bold;
-    text-decoration: none;
-  ">📞 Use Basic Phone Guide (*555#)</a>
-</div>
+
+  <button id="listen-again-btn" onclick="listenAgain()">🔊 Listen Again</button>
+
+  <div style="margin-top: 20px;">
+    <p style="color: #999; font-size: 12px; margin-bottom: 8px;">Don't have a smartphone?</p>
+    <a href="/ussd-test" target="_blank" class="no-phone-btn">📞 Use Basic Phone Guide (*555#)</a>
+  </div>
+
   <div class="lang-bar">
     <button class="lang-btn active" onclick="setLang('en-IN', this)">English</button>
     <button class="lang-btn" onclick="setLang('kn-IN', this)">ಕನ್ನಡ</button>
@@ -131,6 +151,7 @@
   let recognition;
   let isListening = false;
   let selectedLang = 'en-IN';
+  let lastReply = '';
 
   function setLang(lang, btn) {
     selectedLang = lang;
@@ -138,15 +159,49 @@
     btn.classList.add('active');
   }
 
+  function getBestVoice(lang) {
+    const voices = window.speechSynthesis.getVoices();
+    const langCode = lang.split('-')[0];
+
+    // Try to find a female voice first
+    let voice = voices.find(v =>
+      v.lang.startsWith(lang) &&
+      (v.name.toLowerCase().includes('female') ||
+       v.name.toLowerCase().includes('woman') ||
+       v.name.toLowerCase().includes('zira') ||
+       v.name.toLowerCase().includes('heera') ||
+       v.name.toLowerCase().includes('ravi') ||
+       v.name.toLowerCase().includes('google'))
+    );
+
+    // Fallback to any voice matching language
+    if (!voice) {
+      voice = voices.find(v => v.lang.startsWith(lang));
+    }
+
+    // Fallback to English
+    if (!voice) {
+      voice = voices.find(v => v.lang.startsWith('en'));
+    }
+
+    return voice;
+  }
+
   function startListening() {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
       document.getElementById('status').innerText = 'Sorry, your browser does not support voice. Please use Chrome.';
       return;
     }
+
     if (isListening) {
       recognition.stop();
       return;
     }
+
+    // Stop any ongoing speech first
+    window.speechSynthesis.cancel();
+    document.getElementById('listen-again-btn').style.display = 'none';
+
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     recognition = new SpeechRecognition();
     recognition.lang = selectedLang;
@@ -180,25 +235,58 @@
   }
 
   function sendToFlask(message) {
+    const lang = selectedLang === 'kn-IN' ? 'kannada' :
+                 selectedLang === 'te-IN' ? 'telugu' :
+                 selectedLang === 'hi-IN' ? 'hindi' : 'english';
+
     fetch('/ask', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({ message: message, lang: selectedLang === 'kn-IN' ? 'kannada' : selectedLang === 'te-IN' ? 'telugu' : selectedLang === 'hi-IN' ? 'hindi' : 'english' })    })
+      body: JSON.stringify({ message: message, lang: lang })
+    })
     .then(res => res.json())
     .then(data => {
       const reply = data.reply;
+      lastReply = reply;
       document.getElementById('reply-text').innerText = reply;
       document.getElementById('reply-box').style.display = 'block';
+      document.getElementById('listen-again-btn').style.display = 'inline-block';
       speakReply(reply);
     });
   }
 
   function speakReply(text) {
+    // Cancel any ongoing speech first
+    window.speechSynthesis.cancel();
+
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = selectedLang;
-    utterance.rate = 0.9;
+    utterance.rate = 0.85;
+    utterance.pitch = 1.1;
+    utterance.volume = 1;
+
+    // Load voices and pick best one
+    const voice = getBestVoice(selectedLang);
+    if (voice) utterance.voice = voice;
+
+    // Prevent repeating — only speak once
+    utterance.onend = () => {
+      console.log('Speech finished');
+    };
+
     window.speechSynthesis.speak(utterance);
   }
+
+  function listenAgain() {
+    if (lastReply) {
+      speakReply(lastReply);
+    }
+  }
+
+  // Load voices when page loads
+  window.speechSynthesis.onvoiceschanged = () => {
+    console.log('Voices loaded:', window.speechSynthesis.getVoices().length);
+  };
 </script>
 </body>
 </html>
