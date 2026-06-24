@@ -209,6 +209,10 @@
                  selectedLang === 'te-IN' ? 'telugu' :
                  selectedLang === 'hi-IN' ? 'hindi' : 'english';
 
+    const ttsLang = selectedLang === 'kn-IN' ? 'kn' :
+                    selectedLang === 'te-IN' ? 'te' :
+                    selectedLang === 'hi-IN' ? 'en' : 'en';
+
     fetch('/ask', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -218,18 +222,21 @@
     .then(data => {
       const reply = data.reply;
       lastReply = reply;
+      lastTtsLang = ttsLang;
       document.getElementById('reply-text').innerText = reply;
       document.getElementById('reply-box').style.display = 'block';
       document.getElementById('listen-again-btn').style.display = 'inline-block';
-      speakReply(reply);
+      speakReply(reply, ttsLang);
     });
   }
 
-  function speakReply(text) {
+  let lastTtsLang = 'en';
+
+  function speakReply(text, ttsLang) {
     fetch('/speak', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: text })
+      body: JSON.stringify({ text: text, lang: ttsLang || 'en' })
     })
     .then(res => res.blob())
     .then(blob => {
@@ -238,13 +245,13 @@
       audio.play();
     })
     .catch(err => {
-      console.error('ElevenLabs error:', err);
+      console.error('Speech error:', err);
     });
   }
 
   function listenAgain() {
     if (lastReply) {
-      speakReply(lastReply);
+      speakReply(lastReply, lastTtsLang);
     }
   }
 </script>
