@@ -36,7 +36,11 @@ def speak():
     response = req.post(url, headers=headers, json=body)
     print("ElevenLabs status:", response.status_code)
     print("ElevenLabs response:", response.text[:200])
-    return Response(response.content, mimetype="audio/mpeg")
+    return Response(response.content, mimetype="audio/mpeg", headers={
+    "Content-Type": "audio/mpeg",
+    "Accept-Ranges": "bytes",
+    "Access-Control-Allow-Origin": "*"
+})
 
 @app.route("/ussd", methods=["POST", "GET"])
 def ussd():
