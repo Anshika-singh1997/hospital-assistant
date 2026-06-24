@@ -4,7 +4,7 @@ import requests as req
 
 app = Flask(__name__)
 
-ELEVENLABS_API_KEY = "paste_your_key_here"
+ELEVENLABS_API_KEY = "61ffd0aaa8351f1951ee6e16a0eaaf5c87d88e9b85e95d02ed07a65b860855a9"
 VOICE_ID = "c3QefzBhE1Cx4Yl23IV3"  # change this after picking voice
 
 @app.route("/")
