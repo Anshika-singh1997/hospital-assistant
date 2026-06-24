@@ -5,7 +5,7 @@ import requests as req
 app = Flask(__name__)
 
 ELEVENLABS_API_KEY = "61ffd0aaa8351f1951ee6e16a0eaaf5c87d88e9b85e95d02ed07a65b860855a9"
-VOICE_ID = "c3QefzBhE1Cx4Yl23IV3"  # change this after picking voice
+VOICE_ID = "c3QefzBhE1Cx4Yl23IV3"
 
 @app.route("/")
 def home():
@@ -34,14 +34,13 @@ def speak():
         "voice_settings": {"stability": 0.5, "similarity_boost": 0.75}
     }
     response = req.post(url, headers=headers, json=body)
-print("ElevenLabs status:", response.status_code)
-print("ElevenLabs response:", response.text[:200])
-return Response(response.content, mimetype="audio/mpeg")
+    print("ElevenLabs status:", response.status_code)
+    print("ElevenLabs response:", response.text[:200])
+    return Response(response.content, mimetype="audio/mpeg")
 
 @app.route("/ussd", methods=["POST", "GET"])
 def ussd():
     text = request.form.get("text", "") if request.method == "POST" else request.args.get("text", "")
-
     if text == "":
         response = "CON Welcome to Hospital Assistant - Bellary\n1. Laboratory\n2. OPD / Doctor\n3. Pharmacy\n4. Billing\n5. Emergency\n6. Accessibility / Wheelchair"
     elif text == "1":
@@ -68,7 +67,6 @@ def ussd():
         response = "END Wheelchair ramps at main entrance and elevator near reception. All floors accessible."
     else:
         response = "END Invalid option. Please dial *555# again."
-
     return response
 
 @app.route("/ussd-test")
