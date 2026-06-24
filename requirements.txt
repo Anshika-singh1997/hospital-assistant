@@ -3,4 +3,5 @@ fuzzywuzzy
 python-Levenshtein
 qrcode[pil]
 gunicorn
+gTTS
 requests
