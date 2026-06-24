@@ -3,7 +3,7 @@
 <head>
   <title>USSD Simulator - *555#</title>
   <style>
-    body { font-family: Arial; background: #1B5E20; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    body { font-family: Arial; background: #1B5E20; display: flex; justify-content: center; align-items: center; min-height: 100vh; flex-direction: column; }
     .phone {
       background: #1a1a1a;
       border-radius: 30px;
@@ -55,22 +55,23 @@
   </style>
 </head>
 <body>
-<div>
   <h3>📱 USSD Simulator — Dial *555#</h3>
+
   <div style="text-align:center; margin-bottom: 15px;">
-  <a href="/" style="
-    background: #2E7D32;
-    color: white;
-    padding: 10px 20px;
-    border-radius: 20px;
-    text-decoration: none;
-    font-size: 13px;
-    font-weight: bold;
-  ">🎤 Go Back to Voice Assistant</a>
-</div>
+    <a href="/" style="
+      background: #2E7D32;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 20px;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: bold;
+    ">🎤 Go Back to Voice Assistant</a>
+  </div>
+
   <div class="phone">
     <div class="dial-code">*555#</div>
-    <div class="screen" id="screen">Press CALL to start</div>
+    <div class="screen" id="screen">Press 📞 to start</div>
     <div class="keypad">
       <button class="key" onclick="press('1')">1</button>
       <button class="key" onclick="press('2')">2</button>
@@ -86,16 +87,81 @@
       <button class="key call" onclick="startUSSD()">📞</button>
     </div>
   </div>
-</div>
 
 <script>
   let currentText = "";
   let started = false;
+  let selectedLang = "english";
+
+  const menus = {
+    english: {
+      main: "CON Welcome to Hospital Assistant\n\n1. Laboratory\n2. OPD / Doctor\n3. Pharmacy\n4. Billing\n5. Emergency\n6. Accessibility\n0. Change Language",
+      "1": "END Laboratory is on the 2nd floor. Take stairs on your left and turn right. Open 7AM to 7PM.",
+      "2": "CON Select Doctor:\n1. General Physician - Dr. Ramesh Kumar\n2. Gynecologist - Dr. Priya Sharma\n3. Orthopedic - Dr. Suresh Rao\n4. Pediatrician - Dr. Anita Singh\n5. Cardiologist - Dr. Vinod Patel",
+      "2*1": "END Dr. Ramesh Kumar - General Physician. OPD Room 1, Ground Floor. 9AM to 2PM.",
+      "2*2": "END Dr. Priya Sharma - Gynecologist. OPD Room 3, Ground Floor. 10AM to 1PM.",
+      "2*3": "END Dr. Suresh Rao - Orthopedic. OPD Room 4, 1st Floor. 9AM to 12PM.",
+      "2*4": "END Dr. Anita Singh - Pediatrician. OPD Room 2, Ground Floor. 9AM to 1PM.",
+      "2*5": "END Dr. Vinod Patel - Cardiologist. OPD Room 5, 1st Floor. 11AM to 2PM.",
+      "3": "END Pharmacy is on Ground Floor near the exit on your right. Open 8AM to 8PM.",
+      "4": "END Billing counter is on Ground Floor to the left of main entrance. Open 8AM to 6PM.",
+      "5": "END EMERGENCY: Go to the back of the building. Follow red signs. Open 24 hours.",
+      "6": "END Wheelchair ramps at main entrance and elevator near reception. All floors accessible.",
+      "0": "LANG"
+    },
+    kannada: {
+      main: "CON ಆಸ್ಪತ್ರೆ ಸಹಾಯಕಕ್ಕೆ ಸ್ವಾಗತ\n\n1. ಪ್ರಯೋಗಾಲಯ\n2. OPD / ವೈದ್ಯರು\n3. ಔಷಧಾಲಯ\n4. ಬಿಲ್ಲಿಂಗ್\n5. ತುರ್ತು\n6. ಅಂಗವಿಕಲ ಸೇವೆಗಳು\n0. ಭಾಷೆ ಬದಲಿಸಿ",
+      "1": "END ಪ್ರಯೋಗಾಲಯವು 2ನೇ ಮಹಡಿಯಲ್ಲಿದೆ. ಎಡಕ್ಕೆ ಮೆಟ್ಟಿಲು ಹತ್ತಿ ಬಲಕ್ಕೆ ತಿರುಗಿ. ಬೆಳಿಗ್ಗೆ 7 ರಿಂದ ಸಂಜೆ 7 ವರೆಗೆ ತೆರೆದಿರುತ್ತದೆ.",
+      "2": "CON ವೈದ್ಯರನ್ನು ಆಯ್ಕೆ ಮಾಡಿ:\n1. ಡಾ. ರಮೇಶ್ ಕುಮಾರ್ - ಸಾಮಾನ್ಯ ವೈದ್ಯ\n2. ಡಾ. ಪ್ರಿಯಾ ಶರ್ಮಾ - ಸ್ತ್ರೀರೋಗ\n3. ಡಾ. ಸುರೇಶ್ ರಾವ್ - ಮೂಳೆ ತಜ್ಞ\n4. ಡಾ. ಅನಿತಾ ಸಿಂಗ್ - ಮಕ್ಕಳ ವೈದ್ಯ\n5. ಡಾ. ವಿನೋದ್ ಪಟೇಲ್ - ಹೃದಯ ತಜ್ಞ",
+      "2*1": "END ಡಾ. ರಮೇಶ್ ಕುಮಾರ್ - OPD ಕೊಠಡಿ 1, ನೆಲ ಮಹಡಿ. ಬೆಳಿಗ್ಗೆ 9 ರಿಂದ ಮಧ್ಯಾಹ್ನ 2 ವರೆಗೆ.",
+      "2*2": "END ಡಾ. ಪ್ರಿಯಾ ಶರ್ಮಾ - OPD ಕೊಠಡಿ 3, ನೆಲ ಮಹಡಿ. ಬೆಳಿಗ್ಗೆ 10 ರಿಂದ ಮಧ್ಯಾಹ್ನ 1 ವರೆಗೆ.",
+      "2*3": "END ಡಾ. ಸುರೇಶ್ ರಾವ್ - OPD ಕೊಠಡಿ 4, 1ನೇ ಮಹಡಿ. ಬೆಳಿಗ್ಗೆ 9 ರಿಂದ ಮಧ್ಯಾಹ್ನ 12 ವರೆಗೆ.",
+      "2*4": "END ಡಾ. ಅನಿತಾ ಸಿಂಗ್ - OPD ಕೊಠಡಿ 2, ನೆಲ ಮಹಡಿ. ಬೆಳಿಗ್ಗೆ 9 ರಿಂದ ಮಧ್ಯಾಹ್ನ 1 ವರೆಗೆ.",
+      "2*5": "END ಡಾ. ವಿನೋದ್ ಪಟೇಲ್ - OPD ಕೊಠಡಿ 5, 1ನೇ ಮಹಡಿ. ಬೆಳಿಗ್ಗೆ 11 ರಿಂದ ಮಧ್ಯಾಹ್ನ 2 ವರೆಗೆ.",
+      "3": "END ಔಷಧಾಲಯವು ನೆಲ ಮಹಡಿಯಲ್ಲಿ ನಿರ್ಗಮನದ ಬಳಿ ಇದೆ. ಬೆಳಿಗ್ಗೆ 8 ರಿಂದ ರಾತ್ರಿ 8 ವರೆಗೆ.",
+      "4": "END ಬಿಲ್ಲಿಂಗ್ ಕೌಂಟರ್ ನೆಲ ಮಹಡಿಯಲ್ಲಿ ಮುಖ್ಯ ದ್ವಾರದ ಎಡಭಾಗದಲ್ಲಿದೆ.",
+      "5": "END ತುರ್ತು: ಕಟ್ಟಡದ ಹಿಂಭಾಗಕ್ಕೆ ಹೋಗಿ. ಕೆಂಪು ಚಿಹ್ನೆಗಳನ್ನು ಅನುಸರಿಸಿ. 24 ಗಂಟೆ ತೆರೆದಿರುತ್ತದೆ.",
+      "6": "END ವೀಲ್‌ಚೇರ್ ರ್ಯಾಂಪ್ ಮುಖ್ಯ ದ್ವಾರದಲ್ಲಿ ಮತ್ತು ಲಿಫ್ಟ್ ರಿಸೆಪ್ಷನ್ ಬಳಿ ಇದೆ.",
+      "0": "LANG"
+    },
+    telugu: {
+      main: "CON ఆసుపత్రి సహాయకానికి స్వాగతం\n\n1. ప్రయోగశాల\n2. OPD / డాక్టర్\n3. ఔషధశాల\n4. బిల్లింగ్\n5. అత్యవసర\n6. వికలాంగ సేవలు\n0. భాష మార్చండి",
+      "1": "END ప్రయోగశాల 2వ అంతస్తులో ఉంది. ఎడమవైపు మెట్లు ఎక్కి కుడివైపు తిరగండి. ఉదయం 7 నుండి సాయంత్రం 7 వరకు.",
+      "2": "CON డాక్టర్ ఎంచుకోండి:\n1. డా. రమేష్ కుమార్ - సాధారణ వైద్యుడు\n2. డా. ప్రియా శర్మ - స్త్రీరోగ\n3. డా. సురేష్ రావు - ఎముక నిపుణుడు\n4. డా. అనితా సింగ్ - శిశు వైద్యుడు\n5. డా. వినోద్ పటేల్ - హృదయ నిపుణుడు",
+      "2*1": "END డా. రమేష్ కుమార్ - OPD గది 1, గ్రౌండ్ ఫ్లోర్. ఉదయం 9 నుండి మధ్యాహ్నం 2 వరకు.",
+      "2*2": "END డా. ప్రియా శర్మ - OPD గది 3, గ్రౌండ్ ఫ్లోర్. ఉదయం 10 నుండి మధ్యాహ్నం 1 వరకు.",
+      "2*3": "END డా. సురేష్ రావు - OPD గది 4, 1వ అంతస్తు. ఉదయం 9 నుండి మధ్యాహ్నం 12 వరకు.",
+      "2*4": "END డా. అనితా సింగ్ - OPD గది 2, గ్రౌండ్ ఫ్లోర్. ఉదయం 9 నుండి మధ్యాహ్నం 1 వరకు.",
+      "2*5": "END డా. వినోద్ పటేల్ - OPD గది 5, 1వ అంతస్తు. ఉదయం 11 నుండి మధ్యాహ్నం 2 వరకు.",
+      "3": "END ఔషధశాల గ్రౌండ్ ఫ్లోర్‌లో నిర్గమన ద్వారం దగ్గర ఉంది. ఉదయం 8 నుండి రాత్రి 8 వరకు.",
+      "4": "END బిల్లింగ్ కౌంటర్ గ్రౌండ్ ఫ్లోర్‌లో ప్రధాన ద్వారానికి ఎడమవైపు ఉంది.",
+      "5": "END అత్యవసర: భవనం వెనక భాగానికి వెళ్ళండి. ఎర్ర గుర్తులు అనుసరించండి. 24 గంటలు తెరచి ఉంటుంది.",
+      "6": "END వీల్‌చైర్ రాంప్ ప్రధాన ద్వారం వద్ద మరియు లిఫ్ట్ రిసెప్షన్ దగ్గర ఉంది.",
+      "0": "LANG"
+    },
+    hindi: {
+      main: "CON अस्पताल सहायक में आपका स्वागत है\n\n1. प्रयोगशाला\n2. OPD / डॉक्टर\n3. फार्मेसी\n4. बिलिंग\n5. आपातकाल\n6. दिव्यांग सेवाएं\n0. भाषा बदलें",
+      "1": "END प्रयोगशाला दूसरी मंजिल पर है। बाईं ओर सीढ़ियां चढ़ें और दाईं ओर मुड़ें। सुबह 7 से शाम 7 बजे तक।",
+      "2": "CON डॉक्टर चुनें:\n1. डॉ. रमेश कुमार - सामान्य चिकित्सक\n2. डॉ. प्रिया शर्मा - स्त्री रोग\n3. डॉ. सुरेश राव - हड्डी विशेषज्ञ\n4. डॉ. अनिता सिंह - बाल रोग\n5. डॉ. विनोद पटेल - हृदय विशेषज्ञ",
+      "2*1": "END डॉ. रमेश कुमार - OPD कक्ष 1, भूतल। सुबह 9 से दोपहर 2 बजे तक।",
+      "2*2": "END डॉ. प्रिया शर्मा - OPD कक्ष 3, भूतल। सुबह 10 से दोपहर 1 बजे तक।",
+      "2*3": "END डॉ. सुरेश राव - OPD कक्ष 4, पहली मंजिल। सुबह 9 से दोपहर 12 बजे तक।",
+      "2*4": "END डॉ. अनिता सिंह - OPD कक्ष 2, भूतल। सुबह 9 से दोपहर 1 बजे तक।",
+      "2*5": "END डॉ. विनोद पटेल - OPD कक्ष 5, पहली मंजिल। सुबह 11 से दोपहर 2 बजे तक।",
+      "3": "END फार्मेसी भूतल पर निकास के पास है। सुबह 8 से रात 8 बजे तक।",
+      "4": "END बिलिंग काउंटर भूतल पर मुख्य प्रवेश द्वार के बाईं ओर है।",
+      "5": "END आपातकाल: इमारत के पीछे जाएं। लाल संकेतों का पालन करें। 24 घंटे खुला।",
+      "6": "END व्हीलचेयर रैंप मुख्य प्रवेश द्वार पर और लिफ्ट रिसेप्शन के पास है।",
+      "0": "LANG"
+    }
+  };
+
+  const langMenu = "CON Select Language:\n1. English\n2. ಕನ್ನಡ Kannada\n3. తెలుగు Telugu\n4. हिंदी Hindi";
 
   function startUSSD() {
     currentText = "";
     started = true;
-    fetchUSSD();
+    document.getElementById("screen").innerText = menus[selectedLang].main.replace("CON ", "");
   }
 
   function press(num) {
@@ -103,31 +169,51 @@
       document.getElementById("screen").innerText = "Press 📞 to start first!";
       return;
     }
+
+    // Handle language selection screen
+    if (document.getElementById("screen").innerText === langMenu.replace("CON ", "")) {
+      if (num === "1") { selectedLang = "english"; }
+      else if (num === "2") { selectedLang = "kannada"; }
+      else if (num === "3") { selectedLang = "telugu"; }
+      else if (num === "4") { selectedLang = "hindi"; }
+      currentText = "";
+      document.getElementById("screen").innerText = menus[selectedLang].main.replace("CON ", "");
+      return;
+    }
+
     if (currentText === "") {
       currentText = num;
     } else {
       currentText += "*" + num;
     }
-    fetchUSSD();
+
+    const response = menus[selectedLang][currentText];
+
+    if (!response) {
+      document.getElementById("screen").innerText = "Invalid option. Press CLR and try again.";
+      return;
+    }
+
+    if (response === "LANG") {
+      document.getElementById("screen").innerText = langMenu.replace("CON ", "");
+      currentText = "";
+      return;
+    }
+
+    if (response.startsWith("END")) {
+      document.getElementById("screen").innerText = response.replace("END ", "");
+      started = false;
+      currentText = "";
+    } else if (response.startsWith("CON")) {
+      document.getElementById("screen").innerText = response.replace("CON ", "");
+    }
   }
 
   function reset() {
     currentText = "";
     started = false;
-    document.getElementById("screen").innerText = "Press CALL to start";
-  }
-
-  function fetchUSSD() {
-    fetch(`/ussd?text=${currentText}`)
-      .then(res => res.text())
-      .then(data => {
-        let display = data.replace("CON ", "").replace("END ", "");
-        document.getElementById("screen").innerText = display;
-        if (data.startsWith("END")) {
-          started = false;
-          currentText = "";
-        }
-      });
+    selectedLang = "english";
+    document.getElementById("screen").innerText = "Press 📞 to start";
   }
 </script>
 </body>
