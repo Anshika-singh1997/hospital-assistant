@@ -152,6 +152,7 @@
   let isListening = false;
   let selectedLang = 'en-IN';
   let lastReply = '';
+  let lastTtsLang = 'en';
 
   function setLang(lang, btn) {
     selectedLang = lang;
@@ -160,6 +161,15 @@
   }
 
   function startListening() {
+    // Stop any browser speech synthesis
+    window.speechSynthesis.cancel();
+
+    // Stop any ongoing audio
+    if (window.currentAudio) {
+      window.currentAudio.pause();
+      window.currentAudio = null;
+    }
+
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
       document.getElementById('status').innerText = 'Sorry, your browser does not support voice. Please use Chrome.';
       return;
@@ -213,6 +223,8 @@
                     selectedLang === 'te-IN' ? 'te' :
                     selectedLang === 'hi-IN' ? 'en' : 'en';
 
+    lastTtsLang = ttsLang;
+
     fetch('/ask', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -222,7 +234,6 @@
     .then(data => {
       const reply = data.reply;
       lastReply = reply;
-      lastTtsLang = ttsLang;
       document.getElementById('reply-text').innerText = reply;
       document.getElementById('reply-box').style.display = 'block';
       document.getElementById('listen-again-btn').style.display = 'inline-block';
@@ -230,31 +241,32 @@
     });
   }
 
-  let lastTtsLang = 'en';
+  function speakReply(text, ttsLang) {
+    // Stop browser speech synthesis completely
+    window.speechSynthesis.cancel();
 
- function speakReply(text, ttsLang) {
-  // Cancel any ongoing audio first
-  if (window.currentAudio) {
-    window.currentAudio.pause();
-    window.currentAudio = null;
+    // Stop any ongoing audio first
+    if (window.currentAudio) {
+      window.currentAudio.pause();
+      window.currentAudio = null;
+    }
+
+    fetch('/speak', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: text, lang: ttsLang || 'en' })
+    })
+    .then(res => res.blob())
+    .then(blob => {
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      window.currentAudio = audio;
+      audio.play();
+    })
+    .catch(err => {
+      console.error('Speech error:', err);
+    });
   }
-
-  fetch('/speak', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: text, lang: ttsLang || 'en' })
-  })
-  .then(res => res.blob())
-  .then(blob => {
-    const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
-    window.currentAudio = audio;
-    audio.play();
-  })
-  .catch(err => {
-    console.error('Speech error:', err);
-  });
-}
 
   function listenAgain() {
     if (lastReply) {
