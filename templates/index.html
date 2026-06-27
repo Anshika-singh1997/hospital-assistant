@@ -53,7 +53,7 @@
     }
     #mic-btn:hover { background: #2E7D32; transform: scale(1.05); }
     #mic-btn.listening { background: #C62828; animation: pulse 1s infinite; }
-    #mic-btn:disabled { background: #999; cursor: not-allowed; box-shadow: none; }
+    #mic-btn:disabled { background: #999; cursor: not-allowed; box-shadow: none; transform: none; }
     @keyframes pulse {
       0% { box-shadow: 0 0 0 0 rgba(198,40,40,0.4); }
       70% { box-shadow: 0 0 0 15px rgba(198,40,40,0); }
@@ -157,6 +157,7 @@
   let lastReply = '';
   let lastTtsLang = 'en';
   let audioPlaying = false;
+  let playbackId = 0; // unique ID for each playback session
 
   function setLang(lang, btn) {
     selectedLang = lang;
@@ -164,30 +165,43 @@
     btn.classList.add('active');
   }
 
+  function killAudio() {
+    playbackId++; // invalidate any ongoing playback
+    window.speechSynthesis.cancel();
+    if (window.currentAudio) {
+      window.currentAudio.onended = null;
+      window.currentAudio.onerror = null;
+      window.currentAudio.pause();
+      window.currentAudio.src = '';
+      window.currentAudio.load();
+      window.currentAudio = null;
+    }
+    audioPlaying = false;
+    unlockMic();
+  }
+
   function lockMic() {
-    // Disable mic button while audio plays
+    audioPlaying = true;
     document.getElementById('mic-btn').disabled = true;
     document.getElementById('mic-btn').innerText = '🔊';
-    document.getElementById('status').innerText = '🔊 Playing reply... please wait';
+    document.getElementById('status').innerText = '🔊 Playing reply...';
   }
 
   function unlockMic() {
-    // Re-enable mic button after audio finishes
+    audioPlaying = false;
     document.getElementById('mic-btn').disabled = false;
     document.getElementById('mic-btn').innerText = '🎤';
     document.getElementById('status').innerText = 'Press the mic button and speak';
-    audioPlaying = false;
   }
 
   function startListening() {
-    // Block mic if audio is playing
-    if (audioPlaying) return;
-
-    window.speechSynthesis.cancel();
-    if (window.currentAudio) {
-      window.currentAudio.pause();
-      window.currentAudio = null;
+    if (audioPlaying) {
+      killAudio();
+      return;
     }
+
+    killAudio();
+    window.speechSynthesis.cancel();
 
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
       document.getElementById('status').innerText = 'Sorry, your browser does not support voice. Please use Chrome.';
@@ -262,14 +276,10 @@
   }
 
   function speakReply(text, ttsLang) {
-    window.speechSynthesis.cancel();
-    if (window.currentAudio) {
-      window.currentAudio.pause();
-      window.currentAudio = null;
-    }
-
-    audioPlaying = true;
+    killAudio();
     lockMic();
+
+    const myId = ++playbackId; // capture this session's ID
 
     fetch('/speak', {
       method: 'POST',
@@ -278,21 +288,26 @@
     })
     .then(res => res.blob())
     .then(blob => {
+      // If a newer playback started, ignore this one
+      if (myId !== playbackId) return;
+
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
       window.currentAudio = audio;
+
       audio.onended = () => {
+        if (myId !== playbackId) return;
         unlockMic();
       };
+
       audio.onerror = () => {
+        if (myId !== playbackId) return;
         unlockMic();
       };
-      audio.play();
+
+      audio.play().catch(() => unlockMic());
     })
-    .catch(err => {
-      console.error('Speech error:', err);
-      unlockMic();
-    });
+    .catch(() => unlockMic());
   }
 
   function listenAgain() {
