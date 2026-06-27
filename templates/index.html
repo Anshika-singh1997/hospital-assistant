@@ -232,22 +232,29 @@
 
   let lastTtsLang = 'en';
 
-  function speakReply(text, ttsLang) {
-    fetch('/speak', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: text, lang: ttsLang || 'en' })
-    })
-    .then(res => res.blob())
-    .then(blob => {
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-      audio.play();
-    })
-    .catch(err => {
-      console.error('Speech error:', err);
-    });
+ function speakReply(text, ttsLang) {
+  // Cancel any ongoing audio first
+  if (window.currentAudio) {
+    window.currentAudio.pause();
+    window.currentAudio = null;
   }
+
+  fetch('/speak', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: text, lang: ttsLang || 'en' })
+  })
+  .then(res => res.blob())
+  .then(blob => {
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    window.currentAudio = audio;
+    audio.play();
+  })
+  .catch(err => {
+    console.error('Speech error:', err);
+  });
+}
 
   function listenAgain() {
     if (lastReply) {
