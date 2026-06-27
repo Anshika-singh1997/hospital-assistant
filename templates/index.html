@@ -148,11 +148,16 @@
 </div>
 
 <script>
+  // Disable browser speech synthesis completely
+  window.speechSynthesis.cancel();
+  window.onload = () => { window.speechSynthesis.cancel(); };
+
   let recognition;
   let isListening = false;
   let selectedLang = 'en-IN';
   let lastReply = '';
   let lastTtsLang = 'en';
+  let isPlaying = false;
 
   function setLang(lang, btn) {
     selectedLang = lang;
@@ -160,15 +165,18 @@
     btn.classList.add('active');
   }
 
-  function startListening() {
-    // Stop any browser speech synthesis
+  function stopAllAudio() {
     window.speechSynthesis.cancel();
-
-    // Stop any ongoing audio
     if (window.currentAudio) {
       window.currentAudio.pause();
+      window.currentAudio.src = '';
       window.currentAudio = null;
     }
+    isPlaying = false;
+  }
+
+  function startListening() {
+    stopAllAudio();
 
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
       document.getElementById('status').innerText = 'Sorry, your browser does not support voice. Please use Chrome.';
@@ -195,6 +203,7 @@
     };
 
     recognition.onresult = (event) => {
+      window.speechSynthesis.cancel();
       const transcript = event.results[0][0].transcript;
       document.getElementById('status').innerText = 'You said: ' + transcript;
       sendToFlask(transcript);
@@ -242,14 +251,12 @@
   }
 
   function speakReply(text, ttsLang) {
-    // Stop browser speech synthesis completely
-    window.speechSynthesis.cancel();
+    // Stop everything first
+    stopAllAudio();
 
-    // Stop any ongoing audio first
-    if (window.currentAudio) {
-      window.currentAudio.pause();
-      window.currentAudio = null;
-    }
+    // Prevent double play
+    if (isPlaying) return;
+    isPlaying = true;
 
     fetch('/speak', {
       method: 'POST',
@@ -261,15 +268,21 @@
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
       window.currentAudio = audio;
+      audio.onended = () => {
+        isPlaying = false;
+        window.currentAudio = null;
+      };
       audio.play();
     })
     .catch(err => {
       console.error('Speech error:', err);
+      isPlaying = false;
     });
   }
 
   function listenAgain() {
     if (lastReply) {
+      isPlaying = false;
       speakReply(lastReply, lastTtsLang);
     }
   }
